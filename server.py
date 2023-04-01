@@ -4,12 +4,12 @@ from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException
 import firebase_admin
 from firebase_admin import credentials, db
+import base64
 
 cred = credentials.Certificate('./firebase-key.json') # replace with your actual credentials file path
 firebase_admin.initialize_app(cred, {
-    'databaseURL': 'https://geolocation-8196e.firebaseio.com' # replace with your actual Firebase project ID
+    'databaseURL': 'https://geolocation-8196e-default-rtdb.firebaseio.com/' # replace with your actual Firebase project ID
 })
-db = db.reference()
 
 class NewUser(BaseModel):
     firstName: str
@@ -20,9 +20,6 @@ class NewUser(BaseModel):
 class ExistingUser(BaseModel):
     email: str
     password: str
-
-#geolocation-8196e
-
 
 app = FastAPI()
 
@@ -52,41 +49,34 @@ async def root():
 async def root(ExistingUser: ExistingUser):
     email = ExistingUser.email
     password = ExistingUser.password
-    node_value = db.child('users').get()
-    print(node_value)
-    if email not in currentUsers:
+    encoded_email = base64.b64encode(email.encode('utf-8')).decode('utf-8')
+    users_ref = db.reference('/users/' + encoded_email).get()
+    if users_ref is None:
+        raise HTTPException(status_code=409, detail="Invalid username or password")
+    if users_ref['password'] != password:
         raise HTTPException(status_code=404, detail="Invalid username or password")
-        return
-    print(currentUsers[email]['password'], password)
-    if currentUsers[email]['password'] != password:
-        raise HTTPException(status_code=404, detail="Invalid username or password")
-        return
     raise HTTPException(status_code=200, detail="Granted")
-    return {"message": "create"}
 
 
 @app.post('/create-user')
 async def root(newUser: NewUser):
-    users_ref = db.reference('users')  
     firstName = newUser.firstName
     lastName = newUser.lastName
     email = newUser.email
-    password = newUser.password
+    password = newUser.password # encode the email address
+    encoded_email = base64.b64encode(email.encode('utf-8')).decode('utf-8')
+    # users_ref = db.reference('/users/' + encoded_email)
+    users_ref = db.reference('/users/' + encoded_email)
+    getUsers = users_ref.get()
 
-    new_user_ref = users_ref.push()
-    new_user_ref.set({
+    if getUsers is not None:
+        raise HTTPException(status_code=409, detail="Email exists")
+
+    users_ref.set({
         'firstName': firstName,
         'lastName': lastName,
-        'password': password,
-        'email': email,
+        'email': encoded_email,
+        'password': password
     })
 
-    if email in currentUsers:
-        raise HTTPException(status_code=404, detail="User already created")
-        return
-    currentUsers[email] = {
-        'firstName': firstName,
-        'lastName': lastName,
-        'password': password
-    }
     raise HTTPException(status_code=200, detail="Created")
