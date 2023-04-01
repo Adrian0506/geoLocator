@@ -38,13 +38,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-currentUsers = {}
-
-
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
-
 @app.post('/send-user')
 async def root(ExistingUser: ExistingUser):
     email = ExistingUser.email

@@ -13,5 +13,3 @@ users_ref = db.reference('/')
 users_ref.set({
     'users': {}
 })
-
-print('created')
