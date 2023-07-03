@@ -1,0 +1,6 @@
+FastAPI
+firebase_admin
+pydantic
+passlib
+jose
+uvicorn

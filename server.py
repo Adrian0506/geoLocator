@@ -1,10 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer
 import firebase_admin
+from typing_extensions import Annotated
 from firebase_admin import credentials, db
-import base64
+from hashing.passwordHash import get_hashed_password, verify_password
+from hashing.emailHash import hashEmail, disolveHash
+from createToken.createJWTToken import create_access_token, create_refresh_token
 
 cred = credentials.Certificate('./firebase-key.json') # replace with your actual credentials file path
 firebase_admin.initialize_app(cred, {
@@ -42,23 +47,36 @@ app.add_middleware(
 async def root(ExistingUser: ExistingUser):
     email = ExistingUser.email
     password = ExistingUser.password
-    encoded_email = base64.b64encode(email.encode('utf-8')).decode('utf-8')
+    encoded_email = hashEmail(email)
     users_ref = db.reference('/users/' + encoded_email).get()
     if users_ref is None:
         raise HTTPException(status_code=409, detail="Invalid username or password")
-    if users_ref['password'] != password:
-        raise HTTPException(status_code=404, detail="Invalid username or password")
-    raise HTTPException(status_code=200, detail="Granted")
 
+    passwordVerify = verify_password(password, users_ref['password'])
+
+    if not passwordVerify:
+        raise HTTPException(status_code=404, detail="Invalid username or password")
+
+    return {
+        "access_token": create_access_token(email),
+        "refresh_token": create_refresh_token(email),
+        "firstName": users_ref['firstName'],
+        "lastName": users_ref['lastName']
+    }
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+@app.get('/me')
+async def root(token: Annotated[str, Depends(oauth2_scheme)]):
+    print('test')
+    return 'test'
 
 @app.post('/create-user')
 async def root(newUser: NewUser):
     firstName = newUser.firstName
     lastName = newUser.lastName
     email = newUser.email
-    password = newUser.password # encode the email address
-    encoded_email = base64.b64encode(email.encode('utf-8')).decode('utf-8')
-    # users_ref = db.reference('/users/' + encoded_email)
+    password = get_hashed_password(newUser.password)
+    encoded_email = hashEmail(email)
     users_ref = db.reference('/users/' + encoded_email)
     getUsers = users_ref.get()
 
@@ -73,3 +91,7 @@ async def root(newUser: NewUser):
     })
 
     raise HTTPException(status_code=200, detail="Created")
+
+if __name__ == '__main__':
+    import uvicorn
+    uvicorn.run(app, host='0.0.0.0', port=8000)
