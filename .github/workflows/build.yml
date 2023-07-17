@@ -23,6 +23,6 @@ jobs:
       - name: for some odd reason we need to download jose indepedently
         run: pip3 install python-jose
       - name: Start server to ensure there were no errors
-        run: python3 -m uvicorn server:app
+        run: python3 -m uvicorn server:app && sleep 5
       - name: Server start was a success!
         run: echo "🍏 This job's status is ${{ job.status }}."
