@@ -20,6 +20,8 @@ jobs:
         run: sudo apt-get update
       - name: Install dependencies to ensure there are no dependency errors
         run: pip install -r requirements.txt
+      - name: for some odd reason we need to download jose indepedently
+        run: pip3 install python-jose
       - name: Start server to ensure there were no errors
         run: python3 -m uvicorn server:app
       - name: Server start was a success!
