@@ -3,7 +3,7 @@ run-name: ${{ github.actor }} is running a build.
 on: [push]
 jobs:
   Explore-GitHub-Actions:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
