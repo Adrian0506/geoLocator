@@ -17,4 +17,4 @@ jobs:
       - name: Start server to ensure there was no errors
         run: 'python3 -m uvicorn server:app'
       - name: Server start was a success!
-      - run: echo "🍏 This job's status is ${{ job.status }}."
+        run: echo "🍏 This job's status is ${{ job.status }}."
