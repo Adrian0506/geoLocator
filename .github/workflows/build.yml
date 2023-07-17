@@ -14,4 +14,7 @@ jobs:
       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
       - name: Install depedency's to ensure that there is no dependency errors
         run: 'pip install -r requirements.txt'
+      - name: Start server to ensure there was no errors
+        run: 'python3 -m uvicorn server:app'
+      - name: Server start was a success!
       - run: echo "🍏 This job's status is ${{ job.status }}."
